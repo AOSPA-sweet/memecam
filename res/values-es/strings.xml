@@ -459,4 +459,10 @@
     <string name="trust_onboarding_learn_more">Saber más</string>
     <string name="trust_onboarding_done">Entiendo</string>
     <string name="sms_security_check_limit_title">Límite de mensajes SMS</string>
+    <string name="sms_security_check_limit_summary">Aplicaciones pueden mandar%s mensajes durante 1 minuto sin pedir confirmación</string>
+    <string name="sms_security_check_limit_summary_none">Aplicaciones no están permitidas para mandar ningún mensaje sin confirmación</string>
+    <string name="sms_security_check_limit_always_confirm">Siempre pedir confiramción</string>
+    <string name="previous_page_content_description">Anterior</string>
+    <string name="next_page_content_description">Siguiente</string>
+    <string name="colors_viewpager_content_description">Previsualización del color</string>
 </resources>

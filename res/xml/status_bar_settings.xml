@@ -27,6 +27,11 @@
         android:entries="@array/status_bar_quick_qs_pulldown_entries"
         android:entryValues="@array/status_bar_quick_qs_pulldown_values"
         android:defaultValue="0" />
+        
+        <com.palyrim.support.preferences.SystemSettingSwitchPreference
+            android:key="qs_footer_data_usage"
+            android:title="@string/qs_footer_datausage_title"
+            android:summary="@string/qs_footer_datausage_summary" /> 
         	
         <com.palyrim.support.preferences.CustomSystemSettingSeekBarPreference
             android:key="qs_transparency"

@@ -52,6 +52,9 @@ public class StatusBarSettings extends SettingsPreferenceFragment
     private static final String STATUS_BAR_BATTERY_STYLE = "status_bar_battery_style";
     private static final String STATUS_BAR_SHOW_BATTERY_PERCENT = "status_bar_show_battery_percent";
     private static final String STATUS_BAR_QUICK_QS_PULLDOWN = "qs_quick_pulldown";
+    private static final String KEY_SHOW_BRIGHTNESS_SLIDER = "qs_show_brightness_slider";
+    private static final String KEY_BRIGHTNESS_SLIDER_POSITION = "qs_brightness_slider_position";
+    private static final String KEY_SHOW_AUTO_BRIGHTNESS = "qs_show_auto_brightness";
 
     private static final int STATUS_BAR_BATTERY_STYLE_TEXT = 2;
 
@@ -65,6 +68,9 @@ public class StatusBarSettings extends SettingsPreferenceFragment
     private LineageSystemSettingListPreference mStatusBarClock;
     private LineageSystemSettingListPreference mStatusBarAmPm;
     private LineageSystemSettingListPreference mStatusBarBatteryShowPercent;
+    private LineageSecureSettingListPreference mShowBrightnessSlider;
+    private LineageSecureSettingListPreference mBrightnessSliderPosition;
+    private LineageSecureSettingSwitchPreference mShowAutoBrightness;
 
     private PreferenceCategory mStatusBarBatteryCategory;
     private PreferenceCategory mStatusBarClockCategory;
@@ -76,7 +82,27 @@ public class StatusBarSettings extends SettingsPreferenceFragment
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.status_bar_settings);
+        
+        mShowBrightnessSlider =
+                (LineageSecureSettingListPreference) findPreference(KEY_SHOW_BRIGHTNESS_SLIDER);
+        mShowBrightnessSlider.setOnPreferenceChangeListener(this);
+        boolean showSlider = LineageSettings.Secure.getIntForUser(resolver,
+                LineageSettings.Secure.QS_SHOW_BRIGHTNESS_SLIDER, 1, UserHandle.USER_CURRENT) > 0;
 
+        mBrightnessSliderPosition =
+                (LineageSecureSettingListPreference) findPreference(KEY_BRIGHTNESS_SLIDER_POSITION);
+        mBrightnessSliderPosition.setEnabled(showSlider);          
+
+        mShowAutoBrightness =
+                (LineageSecureSettingSwitchPreference) findPreference(KEY_SHOW_AUTO_BRIGHTNESS);
+        boolean automaticAvailable = res.getBoolean(
+                com.android.internal.R.bool.config_automatic_brightness_available);
+        if (automaticAvailable) {
+            mShowAutoBrightness.setEnabled(showSlider);
+        } else {
+            prefScreen.removePreference(mShowAutoBrightness);
+        }
+        
         mNetworkTrafficPref = findPreference(NETWORK_TRAFFIC_SETTINGS);
 
         mHasCenteredCutout = DeviceUtils.hasCenteredCutout(getActivity());
@@ -166,6 +192,13 @@ public class StatusBarSettings extends SettingsPreferenceFragment
             case STATUS_BAR_BATTERY_STYLE:
                 enableStatusBarBatteryDependents(value);
                 break;
+                
+     if (preference == mShowBrightnessSlider) {
+            int value = Integer.parseInt((String) newValue);
+            mBrightnessSliderPosition.setEnabled(value > 0);
+            if (mShowAutoBrightness != null)
+                mShowAutoBrightness.setEnabled(value > 0);
+            return true;           
         }
         return true;
     }

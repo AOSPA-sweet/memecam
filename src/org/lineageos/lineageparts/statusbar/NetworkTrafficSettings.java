@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 The LineageOS Project
+ * Copyright (C) 2017-2021 crDroid Android Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,94 +17,106 @@
 package org.lineageos.lineageparts.statusbar;
 
 import android.content.ContentResolver;
+import android.content.Context;
 import android.os.Bundle;
-import android.widget.Toast;
+import android.os.UserHandle;
 
-import androidx.preference.DropDownPreference;
+import androidx.preference.ListPreference;
 import androidx.preference.Preference;
+import androidx.preference.PreferenceScreen;
+import androidx.preference.Preference.OnPreferenceChangeListener;
+import androidx.preference.SwitchPreference;
 
-import lineageos.preference.LineageSecureSettingSwitchPreference;
 import lineageos.providers.LineageSettings;
-import org.lineageos.lineageparts.R;
-import org.lineageos.lineageparts.SettingsPreferenceFragment;
 
+import com.android.settings.R;
+import com.android.settings.SettingsPreferenceFragment;
+import com.android.internal.logging.nano.MetricsProto;
+
+import com.crdroid.settings.preferences.CustomSeekBarPreference;
 
 public class NetworkTrafficSettings extends SettingsPreferenceFragment
         implements Preference.OnPreferenceChangeListener  {
 
     private static final String TAG = "NetworkTrafficSettings";
-    private static final String STATUS_BAR_CLOCK_STYLE = "status_bar_clock";
 
-    private DropDownPreference mNetTrafficMode;
-    private LineageSecureSettingSwitchPreference mNetTrafficAutohide;
-    private DropDownPreference mNetTrafficUnits;
-    private LineageSecureSettingSwitchPreference mNetTrafficShowUnits;
+    private CustomSeekBarPreference mNetTrafficAutohideThreshold;
+    private CustomSeekBarPreference mNetTrafficRefreshInterval;
+    private ListPreference mNetTrafficLocation;
+    private ListPreference mNetTrafficMode;
+    private ListPreference mNetTrafficUnits;
+    private SwitchPreference mNetTrafficAutohide;
+    private SwitchPreference mNetTrafficHideArrow;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.network_traffic_settings);
-        getActivity().setTitle(R.string.network_traffic_settings_title);
-
         final ContentResolver resolver = getActivity().getContentResolver();
 
-        mNetTrafficMode = findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_MODE);
-        mNetTrafficMode.setOnPreferenceChangeListener(this);
-        int mode = LineageSettings.Secure.getInt(resolver,
-                LineageSettings.Secure.NETWORK_TRAFFIC_MODE, 0);
-        mNetTrafficMode.setValue(String.valueOf(mode));
+        mNetTrafficAutohideThreshold = (CustomSeekBarPreference)
+                findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_AUTOHIDE_THRESHOLD);
+        mNetTrafficRefreshInterval = (CustomSeekBarPreference)
+                findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_REFRESH_INTERVAL);
+        mNetTrafficLocation = (ListPreference)
+                findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_LOCATION);
+        mNetTrafficLocation.setOnPreferenceChangeListener(this);
+        mNetTrafficMode = (ListPreference)
+                findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_MODE);
+        mNetTrafficAutohide = (SwitchPreference)
+                findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_AUTOHIDE);
+        mNetTrafficUnits = (ListPreference)
+                findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_UNITS);
+        mNetTrafficHideArrow = (SwitchPreference)
+                findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_HIDEARROW);
 
-        mNetTrafficAutohide = findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_AUTOHIDE);
-        mNetTrafficAutohide.setOnPreferenceChangeListener(this);
-
-        mNetTrafficUnits = findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_UNITS);
-        mNetTrafficUnits.setOnPreferenceChangeListener(this);
-        int units = LineageSettings.Secure.getInt(resolver,
-                LineageSettings.Secure.NETWORK_TRAFFIC_UNITS, /* Mbps */ 1);
-        mNetTrafficUnits.setValue(String.valueOf(units));
-
-        mNetTrafficShowUnits = findPreference(LineageSettings.Secure.NETWORK_TRAFFIC_SHOW_UNITS);
-        mNetTrafficShowUnits.setOnPreferenceChangeListener(this);
-
-        updateEnabledStates(mode);
-        updateForClockConflicts();
+        int location = LineageSettings.Secure.getIntForUser(resolver,
+                LineageSettings.Secure.NETWORK_TRAFFIC_LOCATION, 0, UserHandle.USER_CURRENT);
+        updateEnabledStates(location);
     }
 
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
-        if (preference == mNetTrafficMode) {
-            int mode = Integer.valueOf((String) newValue);
-            LineageSettings.Secure.putInt(getActivity().getContentResolver(),
-                    LineageSettings.Secure.NETWORK_TRAFFIC_MODE, mode);
-            updateEnabledStates(mode);
-            updateForClockConflicts();
-        } else if (preference == mNetTrafficUnits) {
-            int units = Integer.valueOf((String) newValue);
-            LineageSettings.Secure.putInt(getActivity().getContentResolver(),
-                    LineageSettings.Secure.NETWORK_TRAFFIC_UNITS, units);
+        if (preference == mNetTrafficLocation) {
+            int location = Integer.valueOf((String) newValue);
+            updateEnabledStates(location);
+            return true;
         }
-        return true;
+        return false;
     }
 
-    private void updateEnabledStates(int mode) {
-        final boolean enabled = mode != 0;
+    private void updateEnabledStates(int location) {
+        final boolean enabled = location != 0;
+        mNetTrafficMode.setEnabled(enabled);
         mNetTrafficAutohide.setEnabled(enabled);
+        mNetTrafficAutohideThreshold.setEnabled(enabled);
+        mNetTrafficHideArrow.setEnabled(enabled);
+        mNetTrafficRefreshInterval.setEnabled(enabled);
         mNetTrafficUnits.setEnabled(enabled);
-        mNetTrafficShowUnits.setEnabled(enabled);
     }
 
-    private void updateForClockConflicts() {
-        int clockPosition = LineageSettings.System.getInt(getActivity().getContentResolver(),
-                STATUS_BAR_CLOCK_STYLE, 2);
+    public static void reset(Context mContext) {
+        ContentResolver resolver = mContext.getContentResolver();
+        LineageSettings.Secure.putIntForUser(resolver,
+                LineageSettings.Secure.NETWORK_TRAFFIC_LOCATION, 0, UserHandle.USER_CURRENT);
+        LineageSettings.Secure.putIntForUser(resolver,
+                LineageSettings.Secure.NETWORK_TRAFFIC_MODE, 0, UserHandle.USER_CURRENT);
+        LineageSettings.Secure.putIntForUser(resolver,
+                LineageSettings.Secure.NETWORK_TRAFFIC_AUTOHIDE, 1, UserHandle.USER_CURRENT);
+        LineageSettings.Secure.putIntForUser(resolver,
+                LineageSettings.Secure.NETWORK_TRAFFIC_AUTOHIDE_THRESHOLD, 0, UserHandle.USER_CURRENT);
+        LineageSettings.Secure.putIntForUser(resolver,
+                LineageSettings.Secure.NETWORK_TRAFFIC_UNITS, 1, UserHandle.USER_CURRENT);
+        LineageSettings.Secure.putIntForUser(resolver,
+                LineageSettings.Secure.NETWORK_TRAFFIC_SHOW_UNITS, 1, UserHandle.USER_CURRENT);
+        LineageSettings.Secure.putIntForUser(resolver,
+                LineageSettings.Secure.NETWORK_TRAFFIC_REFRESH_INTERVAL, 2, UserHandle.USER_CURRENT);
+        LineageSettings.Secure.putIntForUser(resolver,
+                LineageSettings.Secure.NETWORK_TRAFFIC_HIDEARROW, 0, UserHandle.USER_CURRENT);
+    }
 
-        if (clockPosition != 1) {
-            return;
-        }
-
-        mNetTrafficMode.setEnabled(false);
-        Toast.makeText(getActivity(),
-                R.string.network_traffic_disabled_clock,
-                Toast.LENGTH_LONG).show();
-        updateEnabledStates(0);
+    @Override
+    public int getMetricsCategory() {
+        return MetricsProto.MetricsEvent.PALYRIM_SETTINGS;
     }
 }

@@ -36,6 +36,7 @@ import org.lineageos.lineageparts.SettingsPreferenceFragment;
 import org.lineageos.lineageparts.search.BaseSearchIndexProvider;
 import org.lineageos.lineageparts.search.Searchable;
 import org.lineageos.lineageparts.utils.DeviceUtils;
+import org.lineageos.lineageparts.statusbar.NetworkTrafficSettings;
 
 import java.util.Set;
 
@@ -62,8 +63,6 @@ public class StatusBarSettings extends SettingsPreferenceFragment
     private static final int PULLDOWN_DIR_RIGHT = 1;
     private static final int PULLDOWN_DIR_LEFT = 2;
 
-    private static final String NETWORK_TRAFFIC_SETTINGS = "network_traffic_settings";
-
     private LineageSystemSettingListPreference mQuickPulldown;
     private LineageSystemSettingListPreference mStatusBarClock;
     private LineageSystemSettingListPreference mStatusBarAmPm;
@@ -74,7 +73,6 @@ public class StatusBarSettings extends SettingsPreferenceFragment
 
     private PreferenceCategory mStatusBarBatteryCategory;
     private PreferenceCategory mStatusBarClockCategory;
-    private Preference mNetworkTrafficPref;
 
     private boolean mHasCenteredCutout;
 
@@ -101,13 +99,6 @@ public class StatusBarSettings extends SettingsPreferenceFragment
             mShowAutoBrightness.setEnabled(showSlider);
         } else {
             prefScreen.removePreference(mShowAutoBrightness);
-        }
-        
-        mNetworkTrafficPref = findPreference(NETWORK_TRAFFIC_SETTINGS);
-
-        mHasCenteredCutout = DeviceUtils.hasCenteredCutout(getActivity());
-        if (mHasCenteredCutout) {
-            getPreferenceScreen().removePreference(mNetworkTrafficPref);
         }
 
         mStatusBarAmPm = findPreference(STATUS_BAR_AM_PM);
@@ -186,9 +177,6 @@ public class StatusBarSettings extends SettingsPreferenceFragment
             case STATUS_BAR_QUICK_QS_PULLDOWN:
                 updateQuickPulldownSummary(value);
                 break;
-            case STATUS_BAR_CLOCK_STYLE:
-                updateNetworkTrafficStatus(value);
-                break;
             case STATUS_BAR_BATTERY_STYLE:
                 enableStatusBarBatteryDependents(value);
                 break;
@@ -226,42 +214,4 @@ public class StatusBarSettings extends SettingsPreferenceFragment
         }
         mQuickPulldown.setSummary(summary);
     }
-
-    private void updateNetworkTrafficStatus(int clockPosition) {
-        if (mHasCenteredCutout) {
-            // Unconditional no network traffic for you
-            return;
-        }
-
-        boolean isClockCentered = clockPosition == 1;
-        mNetworkTrafficPref.setEnabled(!isClockCentered);
-        mNetworkTrafficPref.setSummary(getResources().getString(isClockCentered ?
-                R.string.network_traffic_disabled_clock :
-                R.string.network_traffic_settings_summary
-        ));
-    }
-
-    private int getNetworkTrafficStatus() {
-        return LineageSettings.Secure.getInt(getActivity().getContentResolver(),
-                LineageSettings.Secure.NETWORK_TRAFFIC_MODE, 0);
-    }
-
-    private int getClockPosition() {
-        return LineageSettings.System.getInt(getActivity().getContentResolver(),
-                STATUS_BAR_CLOCK_STYLE, 2);
-    }
-
-    public static final Searchable.SearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
-            new BaseSearchIndexProvider() {
-
-        @Override
-        public Set<String> getNonIndexableKeys(Context context) {
-            final Set<String> result = new ArraySet<String>();
-
-            if (DeviceUtils.hasCenteredCutout(context)) {
-                result.add(NETWORK_TRAFFIC_SETTINGS);
-            }
-            return result;
-        }
-    };
 }
